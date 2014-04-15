@@ -10,4 +10,5 @@ depends "build-essential"
 depends "git"
 depends "nodejs"
 
-supports "ubuntu redhat"
+supports "ubuntu"
+supports "redhat"

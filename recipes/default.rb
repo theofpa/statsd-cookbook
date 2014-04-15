@@ -7,9 +7,9 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,7 @@ include_recipe "nodejs"
 statsd_version = node[:statsd][:sha]
 
 
-if platform?(%w{ debian })
+if platform?(%w{ ubuntu debian })
 
   include_recipe "build-essential"
   include_recipe "git"
@@ -52,6 +52,7 @@ if platform?(%w{ debian })
   dpkg_package "statsd" do
     action :install
     source "#{node[:statsd][:tmp_dir]}/statsd_#{node[:statsd][:package_version]}_all.deb"
+    options '--force-confold'
   end
 end
 
@@ -72,6 +73,7 @@ if platform?(%w{ redhat centos fedora })
 
   directory "#{node[:statsd][:tmp_dir]}/build/usr/share/statsd/scripts" do
 	  recursive true
+    action :create
   end
 
   git "#{node[:statsd][:tmp_dir]}/build/usr/share/statsd" do
@@ -81,25 +83,20 @@ if platform?(%w{ redhat centos fedora })
      notifies :run, "execute[build rpm package]"
   end
 
+  execute "build rpm package" do
+    command "fpm -s dir -t rpm -n statsd -a noarch -v #{node[:statsd][:package_version]} ."
+    cwd "#{node[:statsd][:tmp_dir]}/build"
+    creates "#{node[:statsd][:tmp_dir]}/build/statsd-#{node[:statsd][:package_version]}-1.noarch.rpm"
+  end
 
-   # Fix the debian changelog file of the repo
-#   template "#{node[:statsd][:tmp_dir]}/statsd/debian/changelog" do
-#    source "changelog.erb"
-#   end
+  rpm_package "statsd" do
+    action :install
+    source "#{node[:statsd][:tmp_dir]}/build/statsd-#{node[:statsd][:package_version]}-1.noarch.rpm"
+  end
 
-   execute "build rpm package" do
-     command "fpm -s dir -t rpm -n statsd -a noarch -v #{node[:statsd][:package_version]} ."
-     cwd "#{node[:statsd][:tmp_dir]}/build"
-     creates "#{node[:statsd][:tmp_dir]}/build/statsd-#{node[:statsd][:package_version]}-1.noarch.rpm"
-   end
-
-   rpm_package "statsd" do
-     action :install
-     source "#{node[:statsd][:tmp_dir]}/build/statsd-#{node[:statsd][:package_version]}-1.noarch.rpm"
-   end
-  
-   directory "/etc/statsd" do
-   end
+  directory "/etc/statsd" do
+    action :create
+  end
 end
 
 template "/etc/statsd/rdioConfig.js" do
