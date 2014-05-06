@@ -52,7 +52,7 @@ if platform?(%w{ ubuntu debian })
   dpkg_package "statsd" do
     action :install
     source "#{node[:statsd][:tmp_dir]}/statsd_#{node[:statsd][:package_version]}_all.deb"
-    options '--force-confold'
+    options '--force-confold --ignore-depends=nodejs'
   end
 end
 
